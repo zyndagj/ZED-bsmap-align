@@ -7,14 +7,14 @@ Alignment and methylation calling pipeline for Zea Epigenomics Database (ZED).
   
   From Stampede
   ```shell
-  module load samtools/1.2
+  module load samtools/0.1.19
   ```
 
 * BSMAP
 
   From Stampede
   ```shell
-  module load python bsmap/2.89
+  module load python samtools/0.1.19 bsmap/2.89
   ```
 
 * bedGraphToBigWig
