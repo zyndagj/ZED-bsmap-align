@@ -53,3 +53,25 @@ optional arguments:
   -S N                Window size                                             
   -d N                Minimum coverage in tile for methylation to be printed  
 ```
+
+# Output
+
+#### Bams
+- sample.bam
+
+#### Methylation Calls
+- sample_methratio.txt
+
+#### Tiles
+- sample_CG.bedgraph
+- sample_CHG.bedgraph
+- sample_CHH.bedgraph
+- sample.tab
+
+#### BigWigs
+- sample_CG.bw
+- sample_CHG.bw
+- sample_CHH.bw
+
+#### YAML
+- sample.yaml
