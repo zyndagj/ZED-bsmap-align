@@ -87,7 +87,7 @@ def calcConversion(config, chrom, faiDict):
 		tmp = line.split('\t')
 		cSum += int(tmp[6])
 		ctSum += int(tmp[7])
-	percent = round((1.0-float(cSum)/float(ctSum))*100.0, 2)
+	percent = round((1.0-float(cSum)/(float(ctSum)+1.0))*100.0, 2)
 	config['conversion'] = {}
 	config['conversion']['Chromosome'] = {'value':chrom, 'description':'Chromosome to calculate conversion efficiency from. No methylation should be expected on this chromosome.'}
 	config['conversion']['C'] = {'value':cSum, 'description':'Number of methylated cytosines'}
