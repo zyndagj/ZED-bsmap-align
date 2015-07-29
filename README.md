@@ -36,22 +36,25 @@ None at the moment. This will change into a proper python module with dependency
 
 # Usage
 ```
-zed-align.py [-h] -R FASTA -r1 FASTQ [-r2 FASTQ] [-N STR] [-U] [-q Q]  
-                    [-C Chrom] [-S N] [-d N]                                  
+usage: zed-align.py [-h] -R FASTA -r1 FASTQ [-r2 FASTQ] [-N STR] [-U] [-q Q]
+                    [-C Chrom] [-S N] [-d N] [--CG N] [--CHG N] [--CHH N]
                                                                               
 Wrapper for Bisulfite Methylation Alignment.                                  
                                                                               
 optional arguments:                                                           
   -h, --help          show this help message and exit                         
-  -R FASTA            Reference for alignment                                 
-  -r1 FASTQ           Single or first fastq from pair                         
-  -r2 FASTQ           Second read                                             
+  -R    FASTA         Reference for alignment                                 
+  -r1   FASTQ         Single or first fastq from pair                         
+  -r2   FASTQ         Second read                                             
   -N STR, --name STR  Name for run                                            
   -U, --uniq          Only use unique alignments                              
-  -q Q                Fastq Quality Encoding (Default: 33)                    
-  -C Chrom            Chromosome to use for checking bisulfite conversion rate
-  -S N                Window size                                             
-  -d N                Minimum coverage in tile for methylation to be printed  
+  -q    Q             Fastq Quality Encoding (Default: 33)                    
+  -C    Chrom         Chromosome to use for checking bisulfite conversion rate
+  -S    N             Window size                                             
+  -d    N             Minimum coverage in tile for methylation to be printed  
+  --CG  N             Minimum sites per tile (Default: 3)
+  --CHG N             Minimum sites per tile (Default: 3)
+  --CHH N             Minimum sites per tile (Default: 6)
 ```
 
 # Output
