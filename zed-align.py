@@ -14,7 +14,7 @@ from yaml import load, dump
 contexts = ('CG','CHG','CHH')
 
 def main():
-	fCheck = fileCheck()
+	fCheck = fileCheck() #class for checking parameters
 	parser = argparse.ArgumentParser(description="Wrapper for Bisulfite Methylation Alignment.")
 	parser.add_argument('-R', metavar='FASTA', help='Reference for alignment', required=True, type=fCheck.fasta)
 	parser.add_argument('-r1', metavar='FASTQ', help='Single or first fastq from pair', required=True, type=fCheck.fastq)
@@ -25,25 +25,37 @@ def main():
 	parser.add_argument('-C', metavar='Chrom', help="Chromosome to use for checking bisulfite conversion rate")
 	parser.add_argument('-S', dest='tileSize', metavar='N', type=int, help="Window size", default=100)
 	parser.add_argument('-d', metavar='N', type=int, help="Minimum coverage in tile for methylation to be printed", default=1)
+	parser.add_argument('--CG', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=3)
+	parser.add_argument('--CHG', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=3)
+	parser.add_argument('--CHH', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=6)
 	args = parser.parse_args()
 	if not args.name:
 		args.name = os.path.splitext(args.r1)[0]
+	######################################################
+	# Arguments Section
+	######################################################
 	config = {'bsmap':{}, 'methratio':{}, 'tiles':{}}
-	#bsmap section
+	#-----------------------------------------------------
+	# Arguments for running BSMAP
+	#-----------------------------------------------------
 	config['bsmap']['-a'] = {'value':args.r1, 'description':'R1 input'}
 	config['bsmap']['-z'] = {'value':str(args.q), 'description':'Fastq quality encoding'}
 	config['bsmap']['-p'] = {'value':str(int(multiprocessing.cpu_count()*1.5)), 'description':'Number of threads'}
 	config['bsmap']['-q'] = {'value':'20', 'description':"Quality threshold for trimming 3' ends of reads"}
-	#config['bsmap']['-V'] = {'value':'1', 'description':'Print major messages'}
 	config['bsmap']['-d'] = {'value':args.R, 'description':'Reference'}
-	#config['bsmap']['-o'] = {'value':args.name+".sam", 'description':'Output BAM'}
-	#methratio section
+	#config['bsmap']['-V'] = {'value':'1', 'description':'Print major messages'}
+	#config['bsmap']['-o'] = {'value':args.name+".sam", 'description':'Output BAM'} # default SAM stdout is piped to samtools
+	#-----------------------------------------------------
+	# Arguments for methratio.py
+	#-----------------------------------------------------
 	#config['methratio']['-q'] = {'value':'', 'description':'Quiet'}
 	config['methratio']['-z'] = {'value':'', 'description':'Report locations with zero methylation'}
 	config['methratio']['-r'] = {'value':'', 'description':'Remove duplicate reads'}
 	config['methratio']['-d'] = {'value':args.R, 'description':'Reference'}
 	config['methratio']['-o'] = {'value':args.name+"_methratio.txt", 'description':'Output methylation ratio file'}
+	#-----------------------------------------------------
 	# Paired specific arguments
+	#-----------------------------------------------------
 	if args.r2:
 		config['bsmap']['-b'] = {'value':args.r2, 'description':'R2 input'}
 		config['methratio']['-p'] = {'value':'', 'description':'Require propper pairings'}
@@ -53,10 +65,17 @@ def main():
 	else:
 		config['bsmap']['-r'] = {'value':'2', 'description':'non-unique hits reported'}
 		config['bsmap']['-w'] = {'value':'20', 'description':'Only 20 equal best hits reported'}
+	#-----------------------------------------------------
 	# Tile Section
+	#-----------------------------------------------------
 	config['tiles']['size'] = {'value':args.tileSize, 'description':'Size of tiles for summarizing methylation'}
 	config['tiles']['minCoverage'] = {'value':args.d, 'description':'Minimum Coverage'}
+	config['tiles']['CG'] = {'value':args.CG, 'description':'Minimum number of sites per tile'}
+	config['tiles']['CHG'] = {'value':args.CHG, 'description':'Minimum number of sites per tile'}
+	config['tiles']['CHH'] = {'value':args.CHH, 'description':'Minimum number of sites per tile'}
+	######################################################
 	# Check for Dependencies
+	######################################################
 	for d in ('bsmap','samtools','methratio.py','bedGraphToBigWig'):
 		if not which(d):
 			sys.exit("Please add %s to your path\n"%(d))
@@ -64,15 +83,31 @@ def main():
 	fai = args.R+'.fai'
 	if not os.path.exists(fai):
 		sys.exit("Please make a fai for your reference\n")
+	######################################################
+	# Run workflow
+	######################################################
 	faiDict = ParseFai(fai)
+	#-----------------------------------------------------
 	# run BSMAP
+	#-----------------------------------------------------
 	runBSMAP(config, args.name, args.r2)
-	# run methratio.py
+	#-----------------------------------------------------
+	# run methratio.py and calculate conversion rate
+	#-----------------------------------------------------
 	runRatio(config)
 	if args.C:
 		calcConversion(config, args.C, faiDict)
+	#-----------------------------------------------------
+	# Make Tiles and Bedgraphs
+	#-----------------------------------------------------
 	makeTile(config, args.name, faiDict)
+	#-----------------------------------------------------
+	# Make bigWig
+	#-----------------------------------------------------
 	makeBigWig(config,fai)
+	#-----------------------------------------------------
+	# Write YAML
+	#-----------------------------------------------------
 	dump(config, open(args.name+'.yaml','w'), default_flow_style=False)
 
 def calcConversion(config, chrom, faiDict):
@@ -181,54 +216,91 @@ def makeTile(config, name, faiDict):
 	bGs = map(lambda x: open(x, 'w', buffer), bgNames)
 	tab = open(name+'.tab', 'w', buffer)
 	# Write header
-	headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT')])
+	headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT')]) ## old out format
+	#headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT','#sites')]) ## new out format
 	tab.write(headStr+'\n')
+	#######################################
 	# Get parameters
+	#######################################
 	tileSize = config['tiles']['size']['value']
 	ratioFile = config['methratio']['-o']['value']
+	nSiteT = map(lambda y: config['tiles'][y]['value'], contexts)
 	sortedChroms = sorted(faiDict.keys())
+	#######################################
 	# start writing by chromosome
+	#######################################
 	for chrom in sortedChroms:
-		offset = int(ceil(faiDict[chrom]/float(tileSize)))
-		C = array('H', [0]*(offset*3))
-		CT = array('H', [0]*(offset*3))
+		#----------------------------------
+		# Create data arrays
+		#----------------------------------
+		offset = int(ceil(faiDict[chrom]/float(tileSize))) # number of tiles
+		C, CT, nSites = makeDataArrays(offset)
+		#----------------------------------
+		# Read Chrom and populate arrays
+		#----------------------------------
 		p = sp.Popen(["grep", '^'+chrom, ratioFile], stdout=sp.PIPE).stdout
 		for line in p:
 			chr, pos, cIndex, c, ct = formatLine(line)
-			C[offset*cIndex+pos/tileSize] += c
-			CT[offset*cIndex+pos/tileSize] += ct
+			index = offset*cIndex+pos/tileSize
+			C[index] += c
+			CT[index] += ct
+			nSites[index] += 1
 		p.close()
+		# zCheck is true if loc-1 had zero methylation
 		zCheck = [False, False, False]
-		for posIndex in xrange(offset):
+		for posIndex in xrange(offset): # tile index
 			start = posIndex*tileSize
-			end = min(start+tileSize,faiDict[chrom])
+			end = min(start+tileSize, faiDict[chrom])
 			tabStr = '%s\t%i\t%i'%(chrom,start,end)
 			for cIndex in range(3):
-				loc = offset*cIndex+posIndex
-				if C[loc]:
-					if zCheck[cIndex]:
-						outStr = '%i\t0\n'%(start,)
-						zCheck[cIndex] = False
-						bGs[cIndex].write(outStr)
-					ratio = float(C[loc])/float(CT[loc])
-					outStr = '%s\t%i\t%i\t%.2f\n'%(chrom,start,end,ratio)
-					tabStr += '\t%.2f\t%i\t%i'%(ratio, C[loc], CT[loc])
-					bGs[cIndex].write(outStr)
+				loc = offset*cIndex+posIndex # data index
+				tabStr += makeTabStr(C[loc], CT[loc], nSites[loc])
+				#-------------------------
+				# Generate BG
+				#-------------------------
+				if C[loc]: # if methylated
+					if nSites[loc] < nSitesT[cIndex]:
+						if not zCheck[cIndex]:
+							bgStr = '%s\t%i\t'%(chrom,start)
+							zCheck[cIndex] = True
+							bGs[cIndex].write(bgStr)
+					else:
+						if zCheck[cIndex]: # if previous was 0
+							bgStr = '%i\t0\n'%(start,)
+							zCheck[cIndex] = False
+							bGs[cIndex].write(bgStr)
+						ratio = float(C[loc])/float(CT[loc])
+						bgStr = '%s\t%i\t%i\t%.2f\n'%(chrom,start,end,ratio)
+						bGs[cIndex].write(bgStr)
 				else:
 					if not zCheck[cIndex]:
-						outStr = '%s\t%i\t'%(chrom,start)
+						bgStr = '%s\t%i\t'%(chrom,start)
 						zCheck[cIndex] = True
-						bGs[cIndex].write(outStr)
-					tabStr += '\t0\t%i\t%i'%(C[loc], CT[loc])
+						bGs[cIndex].write(bgStr)
+				#-------------------------
 			tab.write(tabStr+'\n')
+		#---------------------------------
+		# Write out orphaned zeros
+		#---------------------------------
 		for cIndex in range(3):
 			if zCheck[cIndex]:
-				outStr = '%i\t0\n'%(end,)
-				bGs[cIndex].write(outStr)
+				bgStr = '%i\t0\n'%(end,)
+				bGs[cIndex].write(bgStr)
+	######################################
 	# Close files
+	######################################
 	for bg in bGs:
 		bg.close()
 	tab.close()
+
+def makeTabStr(C, CT, nSites):
+	'''
+	Generates a tab-separated string for the .tab file.
+	'''
+	if C:
+		ratio = float(C)/float(CT)
+		return '\t%.2f\t%i\t%i\t%i'%(ratio, C, CT, nSites)
+	return '\t0\t%i\t%i\t%i'%(C, CT, nSites)
 
 def formatLine(line):
 	tmp = line.split('\t')
@@ -253,6 +325,19 @@ def which(program):
 			if is_exe(exe_file):
 				return exe_file
 	return None
+
+def makeDataArrays(offset):
+	'''
+	Function for creating arrays that keep track of data from
+	methratio.py output.
+
+	>>> makeDataArrays(1)
+	(array('H', [0, 0, 0]), array('H', [0, 0, 0]), array('H', [0, 0, 0]))
+	'''
+	C = array('H', [0]*(offset*3))
+	CT = array('H', [0]*(offset*3))
+	nSites = array('H', [0]*(offset*3)) # max is tile size
+	return (C, CT, nSites)
 
 if __name__ == "__main__":
 	main()
