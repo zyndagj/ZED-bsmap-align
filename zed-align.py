@@ -19,6 +19,7 @@ def main():
 	parser.add_argument('-R', metavar='FASTA', help='Reference for alignment', required=True, type=fCheck.fasta)
 	parser.add_argument('-r1', metavar='FASTQ', help='Single or first fastq from pair', required=True, type=fCheck.fastq)
 	parser.add_argument('-r2', metavar='FASTQ', help='Second read', type=fCheck.fastq)
+	parser.add_argument('-O', metavar='STR', help='Output directory (Default: %(default)s)', default='.', type=str)
 	parser.add_argument('-N', '--name', metavar='STR', help='Name for run')
 	parser.add_argument('-U', '--uniq', action='store_true', help="Only use unique alignments")
 	parser.add_argument('-q', help="Fastq Quality Encoding (Default: %(default)s)", default=33, type=int)
@@ -29,8 +30,13 @@ def main():
 	parser.add_argument('--CHG', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=3)
 	parser.add_argument('--CHH', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=6)
 	args = parser.parse_args()
+	######################################################
+	# Path Section
+	######################################################
 	if not args.name:
 		args.name = os.path.splitext(args.r1)[0]
+	if not os.path.exists(args.O): os.makedirs(args.O)
+	outPrefix = os.path.join(args.O, args.name)
 	######################################################
 	# Arguments Section
 	######################################################
@@ -52,7 +58,7 @@ def main():
 	config['methratio']['-z'] = {'value':'', 'description':'Report locations with zero methylation'}
 	config['methratio']['-r'] = {'value':'', 'description':'Remove duplicate reads'}
 	config['methratio']['-d'] = {'value':args.R, 'description':'Reference'}
-	config['methratio']['-o'] = {'value':args.name+"_methratio.txt", 'description':'Output methylation ratio file'}
+	config['methratio']['-o'] = {'value':outPrefix+"_methratio.txt", 'description':'Output methylation ratio file'}
 	#-----------------------------------------------------
 	# Paired specific arguments
 	#-----------------------------------------------------
@@ -90,7 +96,7 @@ def main():
 	#-----------------------------------------------------
 	# run BSMAP
 	#-----------------------------------------------------
-	runBSMAP(config, args.name, args.r2)
+	runBSMAP(config, outPrefix, args.r2)
 	#-----------------------------------------------------
 	# run methratio.py and calculate conversion rate
 	#-----------------------------------------------------
@@ -100,7 +106,7 @@ def main():
 	#-----------------------------------------------------
 	# Make Tiles and Bedgraphs
 	#-----------------------------------------------------
-	makeTile(config, args.name, faiDict)
+	makeTile(config, outPrefix, faiDict)
 	#-----------------------------------------------------
 	# Make bigWig
 	#-----------------------------------------------------
@@ -108,7 +114,7 @@ def main():
 	#-----------------------------------------------------
 	# Write YAML
 	#-----------------------------------------------------
-	dump(config, open(args.name+'.yaml','w'), default_flow_style=False)
+	dump(config, open(outPrefix+'.yaml','w'), default_flow_style=False, width=1000)
 
 def calcConversion(config, chrom, faiDict):
 	if not chrom in faiDict:
@@ -141,10 +147,10 @@ def runRatio(config):
 	config['methratio_stats']['covered'] = {'value':covered, 'description':'Number of cytosines covered'}
 	config['methratio_stats']['coverage'] = {'value':coverage, 'description':'Average coverage fold'}
 
-def runBSMAP(config, name, r2):
+def runBSMAP(config, outPrefix, r2):
 	bsmapCMD = makeCMD('bsmap', config, 'bsmap')
 	bsP = sp.Popen(bsmapCMD, stderr=sp.PIPE, stdout=sp.PIPE)
-	samP = sp.Popen(['samtools','view','-bS@','5','-'], stdin=bsP.stdout, stdout=open(name+'.bam','wb'), stderr=sp.PIPE)
+	samP = sp.Popen(['samtools','view','-bS@','5','-'], stdin=bsP.stdout, stdout=open(outPrefix+'.bam','wb'), stderr=sp.PIPE)
 	bsP.stdout.close()
 	bsOUT = bsP.stderr.read()
 	samP.wait()
@@ -155,7 +161,7 @@ def runBSMAP(config, name, r2):
 		total, aligned, unique, mult = map(int, re.findall(r'reads:\s+([0-9]+)', bsOUT))
 		unit='reads'
 	config['bsmap_stats'] = {}
-	config['bsmap_stats']['output'] = {'value':name+".bam", 'description':'Output BAM'}
+	config['bsmap_stats']['output'] = {'value':outPrefix+".bam", 'description':'Output BAM'}
 	config['bsmap_stats']['input'] = {'value':total, 'description':'Total number of %s in input'%(unit)}
 	config['bsmap_stats']['aligned'] = {'value':aligned, 'description':'Total number of %s aligned'%(unit)}
 	config['bsmap_stats']['unique'] = {'value':unique, 'description':'Total number of %s uniquely aligned'%(unit)}
@@ -206,15 +212,15 @@ def makeBigWig(config,fai):
 		p.wait()
 	config['bigwigs'] = {'value':bws,'description':'Bigwig versions of bedgraph files for jbrowse to load'}
 
-def makeTile(config, name, faiDict):
+def makeTile(config, outPrefix, faiDict):
 # Make sure to do something with the coverage variable
-	bgNames = map(lambda x: name+'_'+x+'.bedgraph', contexts)
+	bgNames = map(lambda x: outPrefix+'_'+x+'.bedgraph', contexts)
 	config['tiles']['output'] = {\
 'bedgraphs':{'value':bgNames, 'description':'Mehtylation ratios for each methylation motif {CG, CHG, CHH} in bedgraph format.'},\
-'tab':{'value':name+'.tab', 'description':'Tab delimited file of methylation ratios and coverage for each tile.'}}
+'tab':{'value':outPrefix+'.tab', 'description':'Tab delimited file of methylation ratios and coverage for each tile.'}}
 	buffer = 100000
 	bGs = map(lambda x: open(x, 'w', buffer), bgNames)
-	tab = open(name+'.tab', 'w', buffer)
+	tab = open(outPrefix+'.tab', 'w', buffer)
 	# Write header
 	headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT')]) ## old out format
 	#headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT','#sites')]) ## new out format
@@ -224,7 +230,7 @@ def makeTile(config, name, faiDict):
 	#######################################
 	tileSize = config['tiles']['size']['value']
 	ratioFile = config['methratio']['-o']['value']
-	nSiteT = map(lambda y: config['tiles'][y]['value'], contexts)
+	nSitesT = map(lambda y: config['tiles'][y]['value'], contexts)
 	sortedChroms = sorted(faiDict.keys())
 	#######################################
 	# start writing by chromosome

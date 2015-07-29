@@ -46,6 +46,7 @@ optional arguments:
   -R    FASTA         Reference for alignment                                 
   -r1   FASTQ         Single or first fastq from pair                         
   -r2   FASTQ         Second read                                             
+  -O    STR           Output directory (Default: .)
   -N STR, --name STR  Name for run                                            
   -U, --uniq          Only use unique alignments                              
   -q    Q             Fastq Quality Encoding (Default: 33)                    
