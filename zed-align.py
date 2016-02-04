@@ -121,7 +121,7 @@ def calcConversion(config, chrom, faiDict):
 		chromStr = '\n - '.join(faiDict.keys())
 		sys.exit("Chromosome: %s not in reference. Please choose a chromosome from:\n - %s"%(chrom, chromStr))
 	ratioFile = config['methratio']['-o']['value']
-	p = sp.Popen(["grep", chrom, ratioFile], stdout=sp.PIPE).stdout
+	p = sp.Popen(["grep", "^%s\s"%chrom, ratioFile], stdout=sp.PIPE).stdout
 	cSum = 0
 	ctSum = 0
 	for line in p:
@@ -244,7 +244,7 @@ def makeTile(config, outPrefix, faiDict):
 		#----------------------------------
 		# Read Chrom and populate arrays
 		#----------------------------------
-		p = sp.Popen(["grep", '^'+chrom, ratioFile], stdout=sp.PIPE).stdout
+		p = sp.Popen(["grep", "^%s\s"%chrom, ratioFile], stdout=sp.PIPE).stdout
 		for line in p:
 			chr, pos, cIndex, c, ct = formatLine(line)
 			index = offset*cIndex+pos/tileSize
