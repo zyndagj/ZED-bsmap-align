@@ -24,8 +24,8 @@ def main():
 	parser.add_argument('-U', '--uniq', action='store_true', help="Only use unique alignments")
 	parser.add_argument('-q', help="Fastq Quality Encoding (Default: %(default)s)", default=33, type=int)
 	parser.add_argument('-C', metavar='Chrom', help="Chromosome to use for checking bisulfite conversion rate")
-	parser.add_argument('-S', dest='tileSize', metavar='N', type=int, help="Window size", default=100)
-	parser.add_argument('-d', metavar='N', type=int, help="Minimum coverage in tile for methylation to be printed", default=1)
+	parser.add_argument('-S', dest='tileSize', metavar='N', type=int, help="Window size (Default: %(default)s)", default=100)
+	parser.add_argument('-d', metavar='N', type=int, help="Minimum coverage in tile for methylation to be printed (Default: %(default)s - all)", default=1)
 	parser.add_argument('--CG', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=3)
 	parser.add_argument('--CHG', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=3)
 	parser.add_argument('--CHH', metavar='N', type=int, help="Minimum sites per tile (Default: %(default)s)", default=6)
@@ -49,6 +49,8 @@ def main():
 	config['bsmap']['-p'] = {'value':str(int(multiprocessing.cpu_count()*1.5)), 'description':'Number of threads'}
 	config['bsmap']['-q'] = {'value':'20', 'description':"Quality threshold for trimming 3' ends of reads"}
 	config['bsmap']['-d'] = {'value':args.R, 'description':'Reference'}
+	config['bsmap']['-S'] = {'value':'77345', 'description':'Hardcoded random seed for mapping reproducibility'}
+	config['bsmap']['-w'] = {'value':'10000', 'description':'Number of candidate seeds to align against'}
 	#config['bsmap']['-V'] = {'value':'1', 'description':'Print major messages'}
 	#config['bsmap']['-o'] = {'value':args.name+".sam", 'description':'Output BAM'} # default SAM stdout is piped to samtools
 	#-----------------------------------------------------
