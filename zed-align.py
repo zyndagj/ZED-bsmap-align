@@ -90,7 +90,7 @@ def main():
 	# Parse FAI
 	fai = args.R+'.fai'
 	if not os.path.exists(fai):
-		sys.exit("Please make a fai for your reference\n")
+		os.system("samtools faidx %s"%(args.R))
 	######################################################
 	# Run workflow
 	######################################################

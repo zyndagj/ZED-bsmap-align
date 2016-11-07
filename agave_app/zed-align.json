@@ -1,42 +1,22 @@
 {
-    "_links": {
-        "executionSystem": {
-            "href": "https://agave.iplantc.org/systems/v2/stampede-07292015-1508-wonaya"
-        }, 
-        "metadata": {
-            "href": "https://agave.iplantc.org/meta/v2/data/?q={\"associationIds\":\"6614075703430737435-ee4acae9fffff7a7-0001-005\"}"
-        }, 
-        "owner": {
-            "href": "https://agave.iplantc.org/profiles/v2/jawon"
-        }, 
-        "permissions": {
-            "href": "https://agave.iplantc.org/apps/v2/jawon-zed-align-0.1/pems"
-        }, 
-        "self": {
-            "href": "https://agave.iplantc.org/apps/v2/jawon-zed-align-0.1"
-        }, 
-        "storageSystem": {
-            "href": "https://agave.iplantc.org/systems/v2/data.iplantcollaborative.org"
-        }
-    }, 
     "available": true, 
     "checkpointable": false, 
-    "defaultMaxRunTime": "08:00:00", 
+    "defaultMaxRunTime": "24:00:00",
     "defaultMemoryPerNode": 32, 
     "defaultNodeCount": 1, 
     "defaultProcessorsPerNode": 16, 
-    "defaultQueue": "serial", 
-    "deploymentPath": "jawon/applications/zed-align-0.1/stampede", 
-    "deploymentSystem": "data.iplantcollaborative.org", 
-    "executionSystem": "stampede-07292015-1508-wonaya", 
+    "defaultQueue": "normal",
+    "deploymentPath": "gzynda/applications/gzynda-zed-align-1.1",
+    "deploymentSystem": "data.iplantcollaborative.org",
+    "executionSystem": "tacc-stampede-gzynda",
     "executionType": "HPC", 
     "helpURI": "https://github.com/zyndagj/ZED-bsmap-align", 
     "icon": null, 
-    "id": "jawon-zed-align-0.1", 
+    "id": "gzynda-zed-align-1.1", 
     "inputs": [
         {
             "details": {
-                "argument": null, 
+                "argument": "-R",
                 "description": "", 
                 "label": "Reference genome in Fasta format", 
                 "repeatArgument": false, 
@@ -64,7 +44,7 @@
         }, 
         {
             "details": {
-                "argument": null, 
+                "argument": "-r1", 
                 "description": "", 
                 "label": "Single or first fastq from pair", 
                 "repeatArgument": false, 
@@ -86,13 +66,13 @@
                 "enquote": false, 
                 "order": 0, 
                 "required": true, 
-                "validator": "([^\s]+(\.(?i)(fastq))$)", 
+                "validator": ".(fq|fastq)(.gz)?$",
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": null, 
+                "argument": "-r2",
                 "description": "", 
                 "label": "Second read", 
                 "repeatArgument": false, 
@@ -110,22 +90,22 @@
                 ]
             }, 
             "value": {
-                "default": "", 
+                "default": "",
                 "enquote": false, 
                 "order": 0, 
                 "required": false, 
-                "validator": null, 
+                "validator": "(^$|.(fq|fastq)(.gz)?$)",
                 "visible": true
             }
         }
     ], 
     "isPublic": false, 
     "label": "zed-align", 
-    "lastModified": "2016-02-04T13:51:12.000-06:00", 
-    "longDescription": "", 
-    "modules": [], 
-    "name": "jawon-zed-align", 
+    "modules": ["load bsmap/2.91"],
+    "name": "gzynda-zed-align", 
     "ontology": [
+        "http://edamontology.org/topic_3173",
+        "http://edamontology.org/operation_3186",
         "http://sswapmeet.sswap.info/agave/apps/Application"
     ], 
     "outputs": [], 
@@ -133,37 +113,34 @@
     "parameters": [
         {
             "details": {
-                "argument": "-N ", 
+                "argument": " -N ",
                 "description": null, 
                 "label": "name for the run", 
                 "repeatArgument": false, 
-                "showArgument": false
+                "showArgument": true
             }, 
             "id": "name", 
             "semantics": {
-                "maxCardinality": 1, 
-                "minCardinality": 1, 
                 "ontology": [
                     "xs:string"
                 ]
             }, 
             "value": {
                 "default": null, 
-                "enquote": false, 
+                "enquote": false,
                 "order": 1, 
                 "required": true, 
                 "type": "string", 
-                "validator": "", 
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "-U ", 
-                "description": null, 
-                "label": "Only use unique alignments", 
-                "repeatArgument": false, 
-                "showArgument": false
+                "argument": " -U",
+                "description": null,
+                "label": "Only use unique alignments",
+                "repeatArgument": false,
+                "showArgument": true
             }, 
             "id": "unique", 
             "semantics": {
@@ -174,22 +151,20 @@
                 ]
             }, 
             "value": {
-                "default": false, 
-                "enquote": false, 
+                "default": true,
                 "order": 1, 
                 "required": false, 
-                "type": "bool", 
-                "validator": "", 
+                "type": "flag",
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "-q ", 
-                "description": null, 
-                "label": "Fastq Quality Encoding (Default: 33)", 
+                "argument": " -q ",
+                "description": null,
+                "label": "Fastq Quality Encoding",
                 "repeatArgument": false, 
-                "showArgument": false
+                "showArgument": true
             }, 
             "id": "quality", 
             "semantics": {
@@ -204,18 +179,18 @@
                 "enquote": false, 
                 "order": 1, 
                 "required": false, 
-                "type": "number", 
+                "type": "number",
                 "validator": "", 
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "-C ", 
+                "argument": " -C ",
                 "description": null, 
                 "label": "Chromosome to use for checking bisulfite conversion rate", 
                 "repeatArgument": false, 
-                "showArgument": false
+                "showArgument": true
             }, 
             "id": "chrom", 
             "semantics": {
@@ -226,48 +201,46 @@
                 ]
             }, 
             "value": {
-                "default": null, 
+                "default": null,
                 "enquote": false, 
                 "order": 1, 
-                "required": true, 
+                "required": false,
                 "type": "string", 
-                "validator": "", 
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "-S ", 
+                "argument": " -S ",
                 "description": null, 
-                "label": "Window size (Default: 100bp)", 
-                "repeatArgument": false, 
-                "showArgument": false
+                "label": "Window size (base pairs)",
+                "repeatArgument": false,
+                "showArgument": true
             }, 
-            "id": "window", 
+            "id": "window",
             "semantics": {
-                "maxCardinality": 1, 
-                "minCardinality": 1, 
+                "maxCardinality": 1,
+                "minCardinality": 1,
                 "ontology": [
                     "xs:integer"
                 ]
-            }, 
+            },
             "value": {
-                "default": 100, 
-                "enquote": false, 
+                "default": 100,
+                "enquote": false,
                 "order": 1, 
-                "required": true, 
-                "type": "number", 
-                "validator": "", 
+                "required": true,
+                "type": "number",
                 "visible": true
             }
-        }, 
+        },
         {
             "details": {
-                "argument": "-d ", 
+                "argument": " -d ",
                 "description": null, 
                 "label": "Minimum coverage in tile for methylation to be printed", 
                 "repeatArgument": false, 
-                "showArgument": false
+                "showArgument": true
             }, 
             "id": "coverage", 
             "semantics": {
@@ -283,19 +256,18 @@
                 "order": 1, 
                 "required": false, 
                 "type": "number", 
-                "validator": "", 
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "--CG ", 
+                "argument": " --CG ",
                 "description": null, 
-                "label": "Minimum CG sites per tile (Default: 3)", 
-                "repeatArgument": false, 
-                "showArgument": false
+                "label": "Minimum CG sites per tile",
+                "repeatArgument": false,
+                "showArgument": true
             }, 
-            "id": "cg", 
+            "id": "cg",
             "semantics": {
                 "maxCardinality": 1, 
                 "minCardinality": 0, 
@@ -309,19 +281,18 @@
                 "order": 1, 
                 "required": false, 
                 "type": "number", 
-                "validator": "", 
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "--CHG ", 
+                "argument": " --CHG ",
                 "description": null, 
-                "label": "Minimum CHG sites per tile (Default: 3)", 
+                "label": "Minimum CHG sites per tile",
                 "repeatArgument": false, 
-                "showArgument": false
+                "showArgument": true
             }, 
-            "id": "chg", 
+            "id": "chg",
             "semantics": {
                 "maxCardinality": 1, 
                 "minCardinality": 0, 
@@ -335,17 +306,16 @@
                 "order": 1, 
                 "required": false, 
                 "type": "number", 
-                "validator": "", 
                 "visible": true
             }
         }, 
         {
             "details": {
-                "argument": "--CHH ", 
+                "argument": " --CHH ",
                 "description": null, 
-                "label": "Minimum CHH sites per tile (Default: 3)", 
+                "label": "Minimum CHH sites per tile",
                 "repeatArgument": false, 
-                "showArgument": false
+                "showArgument": true
             }, 
             "id": "chh", 
             "semantics": {
@@ -361,12 +331,10 @@
                 "order": 1, 
                 "required": false, 
                 "type": "number", 
-                "validator": "", 
                 "visible": true
             }
         }
     ], 
-    "revision": 17, 
     "shortDescription": "Alignment and methylation calling pipeline for Zea Epigenomics Database (ZED)", 
     "tags": [
         "Bisulfite", 
@@ -374,8 +342,7 @@
         "bedGraph", 
         "alignment"
     ], 
-    "templatePath": "test.template", 
+    "templatePath": "zed-align.template", 
     "testPath": "test.sh", 
-    "uuid": "6614075703430737435-ee4acae9fffff7a7-0001-005", 
-    "version": "0.1"
+    "version": "1.1"
 }

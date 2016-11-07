@@ -1,33 +1,33 @@
-#input
-REFERENCE=${reference}
-READ1=${read1}
-READ2=${read2}
-#parameters
-NAME=${name}
-CHROM=${chrom}
-WINDOW=${window}
-#OUTPUT=${output}
-UNIQUE=${unique}
-QUALITY=${quality}
-COVERAGE=${coverage}
-CG=${cg}
-CHG=${chg}
-CHH=${chh}
+function decompress {
+	if [ -n "$1" ]
+	then
+		if [ "${1##*.}" = "gz" ]
+		then
+			gzip -d $1
+			echo ${1%%.gz}
+		else
+			echo ${1}
+		fi
+	else
+		echo ""
+	fi
+}
 
-module load python samtools bsmap
-#pip install --user PyYAML
+read1=$(decompress ${read1})
+read2=$(decompress ${read2})
+reference=$(decompress ${reference})
 
-ARGS=""
-# Build up an ARGS string for the program
-ARGS="-N $NAME -C $CHROM -S $WINDOW -O ."
-if [ ${UNIQUE} -eq 1 ]; then ARGS="${ARGS} -U "; fi
-if [ -n "${READ2}" ]; then ARGS="${ARGS} -r2 ${READ2} "; fi
-if [ ${QUALITY} -ne 33 ]; then ARGS="${ARGS} -q ${QUALITY} "; fi
-if [ ${COVERAGE} -ne 1 ]; then ARGS="${ARGS} -d ${COVERAGE} "; fi
-if [ ${CG} -ne 3 ]; then ARGS="${ARGS} --CG ${CG} "; fi
-if [ ${CHG} -ne 3 ]; then ARGS="${ARGS} --CHG ${CHG} "; fi
-if [ ${CHH} -ne 6 ]; then ARGS="${ARGS} --CHH ${CHH} "; fi
+inputs=""
+[ -z $read1 ] || inputs+=" -r1 $read1"
+[ -z $read2 ] || inputs+=" -r2 $read2"
+[ -z $reference ] || inputs+=" -R $reference"
 
+tar -xzf py_lib.tar.gz
+export PYTHONPATH=$PWD/lib/python2.7/site-packages:${PYTHONPATH}
 
-# Run the actual program
-python zed-align.py -R ${REFERENCE} -r1 ${READ1} ${ARGS}
+echo "python zed-align.py${inputs}${name}${unique}${quality}${chrom}${window}${coverage}${cg}${chg}${chh}"
+python zed-align.py${inputs}${name}${unique}${quality}${chrom}${window}${coverage}${cg}${chg}${chh}
+
+[ -z $read1 ] || rm $read1
+[ -z $read2 ] || rm $read2
+[ -z $reference ] || rm $reference
