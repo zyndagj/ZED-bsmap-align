@@ -46,7 +46,7 @@ def main():
 	#-----------------------------------------------------
 	config['bsmap']['-a'] = {'value':args.r1, 'description':'R1 input'}
 	config['bsmap']['-z'] = {'value':str(args.q), 'description':'Fastq quality encoding'}
-	config['bsmap']['-p'] = {'value':str(int(multiprocessing.cpu_count()*1.5)), 'description':'Number of threads'}
+	config['bsmap']['-p'] = {'value':str(multiprocessing.cpu_count()), 'description':'Number of threads'}
 	config['bsmap']['-q'] = {'value':'20', 'description':"Quality threshold for trimming 3' ends of reads"}
 	config['bsmap']['-d'] = {'value':args.R, 'description':'Reference'}
 	config['bsmap']['-S'] = {'value':'77345', 'description':'Hardcoded random seed for mapping reproducibility'}
@@ -152,7 +152,8 @@ def runRatio(config):
 def runBSMAP(config, outPrefix, r2):
 	bsmapCMD = makeCMD('bsmap', config, 'bsmap')
 	bsP = sp.Popen(bsmapCMD, stderr=sp.PIPE, stdout=sp.PIPE)
-	samP = sp.Popen(['samtools','view','-bS@','5','-'], stdin=bsP.stdout, stdout=open(outPrefix+'.bam','wb'), stderr=sp.PIPE)
+	cpus = str(multiprocessing.cpu_count())
+	samP = sp.Popen('samtools view -uS - | samtools sort -m 200M -@ %s -O bam -o %s.bam -T %s_tmp'%(cpus, outPrefix, outPrefix), shell=True, stdin=bsP.stdout, stdout=open(outPrefix+'.bam','wb'), stderr=sp.PIPE)
 	bsP.stdout.close()
 	bsOUT = bsP.stderr.read()
 	samP.wait()
