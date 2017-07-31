@@ -225,8 +225,8 @@ def makeTile(config, outPrefix, faiDict):
 	bGs = map(lambda x: open(x, 'w', buffer), bgNames)
 	tab = open(outPrefix+'.tab', 'w', buffer)
 	# Write header
-	headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT')]) ## old out format
-	#headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT','#sites')]) ## new out format
+	#headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT')]) ## old out format
+	headStr = '\t'.join(['Chr','Start','End']+[ c+'_'+t for c in contexts for t in ('ratio','C','CT','sites')]) ## new out format
 	tab.write(headStr+'\n')
 	#######################################
 	# Get parameters
