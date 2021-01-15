@@ -50,7 +50,8 @@ def main():
 	config['bsmap']['-q'] = {'value':'20', 'description':"Quality threshold for trimming 3' ends of reads"}
 	config['bsmap']['-d'] = {'value':args.R, 'description':'Reference'}
 	config['bsmap']['-S'] = {'value':'77345', 'description':'Hardcoded random seed for mapping reproducibility'}
-	config['bsmap']['-w'] = {'value':'10000', 'description':'Number of candidate seeds to align against'}
+	config['bsmap']['-w'] = {'value':'500', 'description':'Number of candidate seeds to align against'}
+	config['bsmap']['-k'] = {'value':'1e-4', 'description':'Discard the top 0.01% over-represented kmers'}
 	#config['bsmap']['-V'] = {'value':'1', 'description':'Print major messages'}
 	#config['bsmap']['-o'] = {'value':args.name+".sam", 'description':'Output BAM'} # default SAM stdout is piped to samtools
 	#-----------------------------------------------------
@@ -139,7 +140,7 @@ def calcConversion(config, chrom, faiDict):
 	p.close()
 
 def runRatio(config):
-	ratioCMD = makeCMD('methratio.py', config, 'methratio')+[config['bsmap_stats']['output']['value']]
+	ratioCMD = makeCMD('par_methratio.py', config, 'methratio')+[config['bsmap_stats']['output']['value']]
 	ratioOUT = sp.check_output(ratioCMD, stderr=sp.STDOUT)
 	statLine = ratioOUT.split('\n')[-2]
 	m = re.match(r".+total\s([0-9]+)\s.+,\s([0-9]+)\s.+age:\s(\w+\.\w+) fold", statLine)
@@ -151,12 +152,12 @@ def runRatio(config):
 
 def runBSMAP(config, outPrefix, r2):
 	bsmapCMD = makeCMD('bsmap', config, 'bsmap')
-	bsP = sp.Popen(bsmapCMD, stderr=sp.PIPE, stdout=sp.PIPE)
+	bsmapLOG = '%s_bsmap.log'%(outPrefix)
+	samLOG = '%s_samtools.log'%(outPrefix)
 	cpus = str(multiprocessing.cpu_count())
-	samP = sp.Popen('samtools view -uS - | samtools sort -m 200M -@ %s -O bam -o %s.bam -T %s_tmp'%(cpus, outPrefix, outPrefix), shell=True, stdin=bsP.stdout, stdout=open(outPrefix+'.bam','wb'), stderr=sp.PIPE)
-	bsP.stdout.close()
-	bsOUT = bsP.stderr.read()
-	samP.wait()
+	sp.check_call('%s 2> %s | samtools view -uS - | samtools sort -m 256M -@ %s -O bam -o %s.bam -T %s_tmp 2> %s'%(' '.join(bsmapCMD), bsmapLOG, cpus, \
+		outPrefix, outPrefix, samLOG), shell=True)
+	bsOUT = open(bsmapLOG,'r').read()
 	if r2:
 		total, aligned, unique, mult = map(int, re.findall(r'pairs:\s+([0-9]+)', bsOUT))
 		unit='pairs'
@@ -164,6 +165,7 @@ def runBSMAP(config, outPrefix, r2):
 		total, aligned, unique, mult = map(int, re.findall(r'reads:\s+([0-9]+)', bsOUT))
 		unit='reads'
 	config['bsmap_stats'] = {}
+	sp.check_call('samtools index %s.bam'%(outPrefix), shell=True)
 	config['bsmap_stats']['output'] = {'value':outPrefix+".bam", 'description':'Output BAM'}
 	config['bsmap_stats']['input'] = {'value':total, 'description':'Total number of %s in input'%(unit)}
 	config['bsmap_stats']['aligned'] = {'value':aligned, 'description':'Total number of %s aligned'%(unit)}
